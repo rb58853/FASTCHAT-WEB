@@ -1,0 +1,17 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="160" height="160" rx="40" fill="#F2FBF6"/>
+  <circle cx="80" cy="80" r="34" stroke="#D8F0E2" stroke-width="10"/>
+  <circle cx="80" cy="80" r="34" stroke="#10B981" stroke-width="10" stroke-linecap="round" stroke-dasharray="70 160">
+    <animateTransform attributeName="transform" type="rotate" from="0 80 80" to="360 80 80" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="80" cy="80" r="18" fill="#0F172A" fill-opacity="0.06"/>
+  <circle cx="80" cy="80" r="6" fill="#10B981">
+    <animate attributeName="r" values="5;7;5" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="118" cy="80" r="4" fill="#34D399">
+    <animate attributeName="opacity" values="1;0.35;1" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="42" cy="80" r="4" fill="#047857">
+    <animate attributeName="opacity" values="0.35;1;0.35" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+</svg>

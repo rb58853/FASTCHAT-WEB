@@ -1,0 +1,235 @@
+.message-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-card);
+}
+
+.message-label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--panel-muted);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.user-query-container,
+.query-container,
+.data-container,
+.step-container,
+.response-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.user-query-container {
+  background: linear-gradient(135deg, var(--user-bubble-start), var(--user-bubble-end));
+  color: #f8fafc;
+}
+
+.user-query-container .message-label {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.user-query-text,
+.query-text,
+.step-message {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.query-text,
+.step-title,
+.response-container h1,
+.response-container h2,
+.response-container h3 {
+  color: var(--text);
+}
+
+.data-container {
+  background: var(--panel-muted);
+}
+
+.data-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-key {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.data-string,
+.data-json {
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-solid);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  overflow-x: auto;
+}
+
+.data-list {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--text-muted);
+}
+
+.step-container {
+  background: var(--step-surface);
+}
+
+.step-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.step-message,
+.query-text,
+.response-container,
+.response-container p,
+.response-container li {
+  color: var(--text-muted);
+}
+
+.response-container {
+  margin-bottom: 20px;
+}
+
+.response-container p,
+.response-container ul,
+.response-container ol,
+.response-container pre,
+.response-container blockquote,
+.response-container table {
+  margin: 0;
+}
+
+.response-container > div,
+.response-container .markdown-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.response-container ul,
+.response-container ol {
+  padding-left: 22px;
+}
+
+.response-container blockquote {
+  padding-left: 16px;
+  border-left: 3px solid var(--accent-line);
+  color: var(--text-soft);
+}
+
+.response-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.response-container th,
+.response-container td {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.response-container pre {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.workflow-loader-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 8px 0 24px;
+  padding: 20px 22px;
+  border: 1px solid var(--accent-line);
+  border-radius: 24px;
+  background: var(--workflow-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.workflow-loader-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.workflow-loader-gif {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.workflow-loader-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workflow-loader-copy h3 {
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.workflow-loader-copy p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.workflow-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: var(--panel-solid);
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.workflow-step-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #8ea39a;
+}
+
+.workflow-step-chip.tone-accent::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 6px var(--accent-tint);
+}
+
+@media (max-width: 720px) {
+  .workflow-loader-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .workflow-loader-gif {
+    width: 64px;
+    height: 64px;
+  }
+}

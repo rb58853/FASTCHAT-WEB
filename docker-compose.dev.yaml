@@ -1,0 +1,14 @@
+services:
+  vite-react:
+    image: fastchat-web
+    build:
+      context: .
+      dockerfile: dockerfile
+      tags:
+        - fastchat-web
+    ports:
+      - "3000:3000"
+    # env_file:
+    #   - .env
+      
+    restart: unless-stopped 

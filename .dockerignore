@@ -1,0 +1,32 @@
+# Archivos de Node.js
+node_modules/
+npm-debug.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# # Archivos de configuración
+# .env*
+# .env.example
+
+## Archivos de build
+# dist/
+# build/
+# coverage/
+
+# Archivos temporales
+*.tmp
+*.log
+*.cache
+
+# Configuraciones de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Otros
+.git
+.gitignore
+README.md
