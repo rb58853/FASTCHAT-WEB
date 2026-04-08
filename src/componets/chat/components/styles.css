@@ -1,8 +1,8 @@
 .message-card {
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 14px;
   background: var(--panel-solid);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 
 .message-label {
@@ -23,11 +23,12 @@
 .query-container,
 .data-container,
 .step-container,
-.response-container {
+.response-container,
+.subquery-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 22px;
+  gap: 10px;
+  padding: 14px 16px;
 }
 
 .user-query-container {
@@ -59,30 +60,77 @@
   background: var(--panel-muted);
 }
 
+.subquery-block {
+  padding: 0;
+  overflow: hidden;
+}
+
+.subquery-section {
+  gap: 8px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.subquery-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 2px;
+}
+
 .data-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .data-key {
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 .data-string,
 .data-json {
   margin: 0;
-  padding: 14px;
-  border-radius: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
   background: var(--panel-solid);
   border: 1px solid rgba(15, 23, 42, 0.06);
   overflow-x: auto;
 }
 
+.data-inline-row,
+.step-inline-row {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.93rem;
+  line-height: 1.45;
+}
+
+.data-inline-key,
+.step-inline-key {
+  color: var(--text-soft);
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.data-inline-value,
+.step-inline-value {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.service-row .data-inline-value {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
 .data-list {
   margin: 0;
-  padding-left: 22px;
+  padding-left: 18px;
   color: var(--text-muted);
 }
 
@@ -92,7 +140,7 @@
 
 .step-title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 
 .step-message,
@@ -104,7 +152,11 @@
 }
 
 .response-container {
-  margin-bottom: 20px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .response-container p,
@@ -158,9 +210,9 @@
   margin: 8px 0 24px;
   padding: 20px 22px;
   border: 1px solid var(--accent-line);
-  border-radius: 24px;
+  border-radius: 14px;
   background: var(--workflow-surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 
 .workflow-loader-header {
@@ -202,7 +254,7 @@
   align-items: center;
   gap: 8px;
   padding: 9px 14px;
-  border-radius: 999px;
+  border-radius: 12px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: var(--panel-solid);
   color: var(--text-muted);

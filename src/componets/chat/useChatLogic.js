@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { UserQueryComponent, QueryComponent, DataComponent, StepComponent, ResponseComponent } from './components/ChatComponents';
 import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
-// URLs de WebSocket
 const vps_url = "ws://77.237.243.163:8000/chat/admin?chat_id=id&token=oBd-k41TmMqib1QYalke7HRCbk_HOtE0nw1YcdkibPc="
 
 export default function useChatLogic() {
@@ -14,10 +12,19 @@ export default function useChatLogic() {
   const [workflowSteps, setWorkflowSteps] = useState([]);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState('');
   const wsRef = useRef(null);
-  const messageKeyRef = useRef(0);
+  const messageIdRef = useRef(0);
   const workflowKeyRef = useRef(0);
+  const currentSubqueryIdRef = useRef(null);
 
-  const nextMessageKey = useCallback((prefix) => `${prefix}-${messageKeyRef.current++}`, []);
+  const nextMessageId = useCallback((prefix) => `${prefix}-${messageIdRef.current++}`, []);
+
+  const hasRenderableData = useCallback((value) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    return true;
+  }, []);
 
   const appendWorkflowStep = useCallback((label, tone = 'neutral') => {
     if (!label) return;
@@ -29,6 +36,25 @@ export default function useChatLogic() {
     });
   }, []);
 
+  const isLoadingActionStep = useCallback((stepTitle, stepMessage) => {
+    const combined = `${stepTitle} ${stepMessage}`.toLowerCase();
+
+    return (
+      /haciendo esta accion|doing this action/.test(combined) ||
+      /select service/.test(combined) ||
+      /select the most appropriate service for the current query/.test(combined) ||
+      /select prompts/.test(combined) ||
+      /select the mosts? appropriates? prompts? for the current query/.test(combined) ||
+      /task query decomposer/.test(combined) ||
+      /separate it into service-specific calls/.test(combined)
+    );
+  }, []);
+
+  const stopProcessing = useCallback(() => {
+    setIsProcessing(false);
+    setActiveWorkflowStep('');
+  }, []);
+
   const describeWorkflowStep = useCallback((step) => {
     if (step.type === 'query') {
       return { label: t.workflow.interpreting, tone: 'neutral' };
@@ -38,25 +64,29 @@ export default function useChatLogic() {
       return { label: t.workflow.consultingData, tone: 'neutral' };
     }
 
-    if (step.type === 'response' && step.first_chunk) {
-      return { label: t.workflow.writingResponse, tone: 'accent' };
-    }
-
     if (step.type === 'step') {
-      const combinedLabel = [step.step, step.message].filter(Boolean).join(' · ');
+      const stepTitle = typeof step.step === 'string' ? step.step.trim() : '';
+      const stepMessage = typeof step.message === 'string' ? step.message.trim() : '';
 
-      if (/servici|service/i.test(combinedLabel)) {
-        return { label: t.workflow.selectingServices, tone: 'accent' };
+      if (stepTitle && stepMessage) {
+        return {
+          label: `${stepTitle}: ${stepMessage}`,
+          tone: isLoadingActionStep(stepTitle, stepMessage) ? 'accent' : 'neutral',
+        };
+      }
+
+      if (stepMessage) {
+        return { label: stepMessage, tone: 'neutral' };
       }
 
       return {
-        label: step.message || step.step || t.workflow.processing,
+        label: stepTitle || t.workflow.processing,
         tone: 'neutral',
       };
     }
 
     return null;
-  }, [t]);
+  }, [isLoadingActionStep, t]);
 
   const handleStep = useCallback((step) => {
     const workflowDescriptor = describeWorkflowStep(step);
@@ -65,38 +95,148 @@ export default function useChatLogic() {
       appendWorkflowStep(workflowDescriptor.label, workflowDescriptor.tone);
     }
 
-    setMessages((prev) => {
-      let updated = [...prev];
-
-      if (step.type === "response") {
-        if (step.first_chunk || updated.length === 0) {
-          updated.push(<ResponseComponent key={nextMessageKey('response')} response={step.response} />);
-        } else {
-          const lastIndex = updated.length - 1;
-          const updatedResponse = updated[lastIndex].props.response + step.response;
-          updated[lastIndex] = <ResponseComponent key={updated[lastIndex].key} response={updatedResponse} />;
-        }
+    const ensureSubquery = (currentMessages) => {
+      if (currentSubqueryIdRef.current) {
+        const exists = currentMessages.some((msg) => msg.kind === 'subquery' && msg.id === currentSubqueryIdRef.current);
+        if (exists) return [currentMessages, currentSubqueryIdRef.current];
       }
 
+      const subqueryId = nextMessageId('subquery');
+      const nextMessages = [
+        ...currentMessages,
+        {
+          id: subqueryId,
+          kind: 'subquery',
+          sections: [],
+        },
+      ];
+      currentSubqueryIdRef.current = subqueryId;
+      return [nextMessages, subqueryId];
+    };
+
+    setMessages((prev) => {
+      let [updated, subqueryId] = ensureSubquery(prev);
+
       if (step.type === "query") {
-        updated.push(<QueryComponent key={nextMessageKey('query')} query={step.query} />);
+        const queryText = typeof step.query === 'string' ? step.query.trim() : '';
+        if (!queryText) return updated;
+
+        const newSubqueryId = nextMessageId('subquery');
+        currentSubqueryIdRef.current = newSubqueryId;
+        return [
+          ...updated,
+          {
+            id: newSubqueryId,
+            kind: 'subquery',
+            sections: [
+              {
+                id: nextMessageId('section'),
+                type: 'query',
+                query: queryText,
+              },
+            ],
+          },
+        ];
       }
 
       if (step.type === "data") {
-        updated.push(<DataComponent key={nextMessageKey('data')} data={step.data} />);
+        const hasVisibleData = step.data && Object.values(step.data).some((value) => hasRenderableData(value));
+
+        if (hasVisibleData) {
+          return updated.map((msg) => {
+            if (msg.id !== subqueryId || msg.kind !== 'subquery') return msg;
+            const sections = [...msg.sections];
+            const lastSection = sections[sections.length - 1];
+
+            if (lastSection && lastSection.type === 'data') {
+              sections[sections.length - 1] = {
+                ...lastSection,
+                data: {
+                  ...(lastSection.data || {}),
+                  ...(step.data || {}),
+                },
+              };
+
+              return {
+                ...msg,
+                sections,
+              };
+            }
+
+            return {
+              ...msg,
+              sections: [
+                ...sections,
+                {
+                  id: nextMessageId('section'),
+                  type: 'data',
+                  data: step.data,
+                },
+              ],
+            };
+          });
+        }
+        return updated;
       }
 
       if (step.type === "step") {
-        updated.push(<StepComponent
-          key={nextMessageKey('step')}
-          step={step.step}
-          message={step.message}
-        />);
+        const stepTitle = typeof step.step === 'string' ? step.step.trim() : '';
+        const stepMessage = typeof step.message === 'string' ? step.message.trim() : '';
+        const loadingOnlyStep = isLoadingActionStep(stepTitle, stepMessage);
+
+        if (loadingOnlyStep) {
+          return updated;
+        }
+
+        if (stepTitle && stepMessage) {
+          return updated.map((msg) => {
+            if (msg.id !== subqueryId || msg.kind !== 'subquery') return msg;
+            return {
+              ...msg,
+              sections: [
+                ...msg.sections,
+                {
+                  id: nextMessageId('section'),
+                  type: 'step',
+                  step: stepTitle,
+                  message: stepMessage,
+                },
+              ],
+            };
+          });
+        }
+        return updated;
+      }
+
+      if (step.type === 'response') {
+        return updated.map((msg) => {
+          if (msg.id !== subqueryId || msg.kind !== 'subquery') return msg;
+
+          const sections = [...msg.sections];
+          const responseIndex = [...sections].reverse().findIndex((section) => section.type === 'response');
+
+          if (step.first_chunk || responseIndex === -1) {
+            sections.push({
+              id: nextMessageId('section'),
+              type: 'response',
+              response: step.response || '',
+            });
+            return { ...msg, sections };
+          }
+
+          const absoluteIndex = sections.length - 1 - responseIndex;
+          const currentResponse = sections[absoluteIndex].response || '';
+          sections[absoluteIndex] = {
+            ...sections[absoluteIndex],
+            response: `${currentResponse}${step.response || ''}`,
+          };
+          return { ...msg, sections };
+        });
       }
 
       return updated;
     });
-  }, [appendWorkflowStep, describeWorkflowStep, nextMessageKey]);
+  }, [appendWorkflowStep, describeWorkflowStep, hasRenderableData, isLoadingActionStep, nextMessageId]);
 
   useEffect(() => {
     const ws = new WebSocket(vps_url);
@@ -108,10 +248,11 @@ export default function useChatLogic() {
     };
 
     ws.onmessage = (event) => {
-      const data = event.data;
-      if (data === "--next") {
-        setIsProcessing(false);
-        setActiveWorkflowStep('');
+      const data = typeof event.data === 'string' ? event.data : '';
+      const normalizedData = data.trim().toLowerCase();
+
+      if (normalizedData === '--eof') {
+        stopProcessing();
         return;
       }
 
@@ -125,17 +266,19 @@ export default function useChatLogic() {
 
     ws.onclose = () => {
       setConnectionStatus('disconnected');
-      setIsProcessing(false);
+      stopProcessing();
     };
 
     ws.onerror = (err) => {
       console.error("⚠️ Error WebSocket:", err);
       setConnectionStatus('disconnected');
-      setIsProcessing(false);
+      stopProcessing();
     };
 
-    return () => ws.close();
-  }, [handleStep]);
+    return () => {
+      ws.close();
+    };
+  }, [handleStep, stopProcessing]);
 
   const sendMessage = () => {
     if (input.trim() && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -144,8 +287,13 @@ export default function useChatLogic() {
       wsRef.current.send(input);
       setMessages((prev) => [
         ...prev,
-        <UserQueryComponent key={nextMessageKey('user')} input={submittedInput} />
+        {
+          id: nextMessageId('user'),
+          kind: 'user',
+          input: submittedInput,
+        },
       ]);
+      currentSubqueryIdRef.current = null;
       setIsProcessing(true);
       setWorkflowSteps([
         {

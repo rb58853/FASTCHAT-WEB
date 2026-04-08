@@ -3,7 +3,7 @@ import useChatLogic from "./useChatLogic";
 import { useEffect, useRef, useState } from 'react';
 import "./style/desktop.css";
 import { Icon } from '@iconify/react/dist/iconify.js'
-import { WorkflowLoader } from './components/ChatComponents';
+import { SubqueryBlock, UserQueryComponent, WorkflowLoader } from './components/ChatComponents';
 import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 const FAQList = ({
@@ -46,11 +46,6 @@ const Chat = () => {
   } = useChatLogic();
   const [showFAQ, setShowFAQ] = useState(true);
   const inputRef = useRef(null);
-  const bottomRef = useRef(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, workflowSteps, isProcessing]);
 
   useEffect(() => {
     const inputElement = inputRef.current;
@@ -88,7 +83,7 @@ const Chat = () => {
         <div className="chat-header-copy">
           <p className="chat-eyebrow">Fastchat</p>
           <h1 className="chat-title">{t.chat.title}</h1>
-          <p className="chat-subtitle">{t.chat.subtitle}</p>
+          {t.chat.subtitle ? <p className="chat-subtitle">{t.chat.subtitle}</p> : null}
         </div>
         <span className={`chat-status-pill status-${connectionStatus}`}>{statusText}</span>
       </header>
@@ -99,22 +94,19 @@ const Chat = () => {
             <div className="chat-empty-copy">
               <p className="chat-empty-kicker">{t.chat.emptyKicker}</p>
               <h2>{t.chat.emptyTitle}</h2>
-              <p>{t.chat.emptyText}</p>
+              {t.chat.emptyText ? <p>{t.chat.emptyText}</p> : null}
             </div>
-
-            <FAQList
-              questions={t.chat.faq}
-              onSelectQuestion={handleFAQClick}
-              inputRef={inputRef}
-              isVisible={showFAQ}
-            />
           </div>
         )}
 
         <div className="chat-box">
-          {messages.map((msg, idx) => (
-            <div key={idx} className="chat-message">
-              {msg}
+          {messages.map((msg) => (
+            <div key={msg.id} className="chat-message">
+              {msg.kind === 'user' ? (
+                <UserQueryComponent input={msg.input} />
+              ) : (
+                <SubqueryBlock subquery={msg} />
+              )}
             </div>
           ))}
 
@@ -124,12 +116,17 @@ const Chat = () => {
               workflowSteps={workflowSteps}
             />
           )}
-
-          <div ref={bottomRef} />
         </div>
       </div>
 
       <div className="composer-shell">
+        <FAQList
+          questions={t.chat.faq}
+          onSelectQuestion={handleFAQClick}
+          inputRef={inputRef}
+          isVisible={showFAQ && !isProcessing}
+        />
+
         <div className="composer-meta">
           <span>{t.chat.composerLeft}</span>
           <span>{t.chat.composerRight}</span>

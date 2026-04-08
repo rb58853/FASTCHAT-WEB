@@ -18,85 +18,176 @@ export function UserQueryComponent({ input }) {
     );
 }
 
-export function QueryComponent({ query }) {
+export function SubqueryBlock({ subquery }) {
     const { t } = useLanguage();
+    const isSubqueryKey = (key) => /querys|queries|subqueries|subquery/i.test(key);
+    const isPromptKey = (key) => /selected[_\s-]?prompt|prompt[_\s-]?selected|prompt/i.test(key);
+
+    const renderDataValue = (key, value) => {
+        if (isSubqueryKey(key) && Array.isArray(value)) {
+            return (
+                <div>
+                    <h4 className="data-key">Subqueries:</h4>
+                    <ul className="data-list">
+                        {value.map((item, idx) => (
+                            <li key={idx}>{String(item)}</li>
+                        ))}
+                    </ul>
+                </div>
+            );
+        }
+
+        if (isPromptKey(key) && typeof value === 'string') {
+            return (
+                <p className="data-inline-row service-row">
+                    <span className="data-inline-key">Selected prompt:</span>
+                    <span className="data-inline-value">{value}</span>
+                </p>
+            );
+        }
+
+        if (typeof value === 'string') {
+            return (
+                <p className={`data-inline-row ${key.toLowerCase() === 'service' ? 'service-row' : ''}`}>
+                    <span className="data-inline-key">{key}:</span>
+                    <span className="data-inline-value">{value}</span>
+                </p>
+            );
+        }
+
+        if (Array.isArray(value)) {
+            if (value.length > 0 && value.every((item) => typeof item === 'string' || typeof item === 'number')) {
+                return (
+                    <p className="data-inline-row">
+                        <span className="data-inline-key">{key}:</span>
+                        <span className="data-inline-value">{value.join(', ')}</span>
+                    </p>
+                );
+            }
+
+            return (
+                <div>
+                    <h4 className="data-key">{key}:</h4>
+                    <ul className="data-list">
+                        {value.map((item, idx) => (
+                            <li key={idx}>{String(item)}</li>
+                        ))}
+                    </ul>
+                </div>
+            );
+        }
+
+        if (typeof value === 'object' && value !== null) {
+            return (
+                <div>
+                    <h4 className="data-key">{key}:</h4>
+                    <pre className="data-json">{JSON.stringify(value, null, 2)}</pre>
+                </div>
+            );
+        }
+
+        return (
+            <p className="data-inline-row">
+                <span className="data-inline-key">{key}:</span>
+                <span className="data-inline-value">{String(value)}</span>
+            </p>
+        );
+    };
+
+    const sections = (subquery?.sections || []).filter((section) => {
+        if (!section) return false;
+        if (section.type === 'query') return Boolean(section.query?.trim());
+        if (section.type === 'step') return Boolean(section.step?.trim()) && Boolean(section.message?.trim());
+        if (section.type === 'response') return Boolean(section.response?.trim());
+        if (section.type === 'data') {
+            const entries = Object.entries(section.data || {}).filter(([_, value]) => {
+                if (value === null || value === undefined) return false;
+                if (typeof value === 'string') return value.trim().length > 0;
+                if (Array.isArray(value)) return value.length > 0;
+                if (typeof value === 'object') return Object.keys(value).length > 0;
+                return true;
+            });
+            return entries.length > 0;
+        }
+        return false;
+    });
+
+    if (sections.length === 0) {
+        return null;
+    }
 
     return (
-        <div className="message-card query-container">
-            <span className="message-label">{t.messageLabels.query}</span>
-            <h3 className="query-text">{query}</h3>
-        </div>
-    );
-}
-
-export function DataComponent({ data }) {
-    const { t } = useLanguage();
-
-    return (
-        <div className="message-card data-container">
-            <span className="message-label">{t.messageLabels.data}</span>
-            {Object.entries(data).map(([key, value]) => (
-                <div key={key} className="data-section">
-                    {key !== "querys" ? <h4 className="data-key">{key}:</h4> : <div></div>}
-                    {typeof value === 'string' && (
-                        <p className="data-string">{value}</p>
+        <div className="message-card subquery-block">
+            {sections.map((section, index) => (
+                <div
+                    key={section.id || `${section.type}-${index}`}
+                    className={`subquery-section section-${section.type}`}
+                >
+                    {index > 0 && <hr className="subquery-divider" />}
+                    {section.type === 'query' && (
+                        <>
+                            <span className="message-label">{t.messageLabels.query}</span>
+                            <h3 className="query-text">{section.query}</h3>
+                        </>
                     )}
-                    {Array.isArray(value) && (
-                        <ul className="data-list">
-                            {value.map((item, idx) => (
-                                <li key={idx}>{item}</li>
-                            ))}
-                        </ul>
+
+                    {section.type === 'step' && (
+                        <>
+                            <p className="step-inline-row">
+                                <span className="step-inline-key">{section.step}:</span>
+                                <span className="step-inline-value">{section.message}</span>
+                            </p>
+                        </>
                     )}
-                    {typeof value === 'object' && !Array.isArray(value) && value !== null && (
-                        <pre className="data-json">{JSON.stringify(value, null, 2)}</pre>
+
+                    {section.type === 'data' && (
+                        <>
+                            {Object.entries(section.data || {}).map(([key, value]) => {
+                                if (value === null || value === undefined) return null;
+                                if (typeof value === 'string' && !value.trim()) return null;
+                                if (Array.isArray(value) && value.length === 0) return null;
+                                if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return null;
+
+                                return (
+                                    <div key={key} className="data-section">
+                                            {renderDataValue(key, value)}
+                                    </div>
+                                );
+                            })}
+                        </>
+                    )}
+
+                    {section.type === 'response' && (
+                        <>
+                            <span className="message-label">{t.messageLabels.response}</span>
+                            <div className="response-container">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    components={{
+                                        code({ inline, className, children, ...props }) {
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            return !inline && match ? (
+                                                <SyntaxHighlighter
+                                                    style={vscDarkPlus}
+                                                    language={match[1]}
+                                                >
+                                                    {String(children).replace(/\n$/, '')}
+                                                </SyntaxHighlighter>
+                                            ) : (
+                                                <code className={className} {...props}>
+                                                    {children}
+                                                </code>
+                                            );
+                                        }
+                                    }}
+                                >
+                                    {section.response}
+                                </ReactMarkdown>
+                            </div>
+                        </>
                     )}
                 </div>
             ))}
-        </div>
-    );
-}
-
-export function StepComponent({ step, message }) {
-    const { t } = useLanguage();
-
-    return (
-        <div className="message-card step-container">
-            <span className="message-label">{t.messageLabels.step}</span>
-            <h4 className="step-title">{step}</h4>
-            <p className="step-message">{message}</p>
-        </div>
-    );
-}
-
-export function ResponseComponent({ response }) {
-    const { t } = useLanguage();
-
-    return (
-        <div className="message-card response-container">
-            <span className="message-label">{t.messageLabels.response}</span>
-            <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                    code({ inline, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return !inline && match ? (
-                            <SyntaxHighlighter
-                                style={vscDarkPlus}
-                                language={match[1]}
-                            >
-                                {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                        ) : (
-                            <code className={className} {...props}>
-                                {children}
-                            </code>
-                        );
-                    }
-                }}
-            >
-                {response}
-            </ReactMarkdown>
         </div>
     );
 }
@@ -115,7 +206,7 @@ export const WorkflowLoader = ({ activeStep, workflowSteps }) => {
                 <div className="workflow-loader-copy">
                     <span className="message-label">{t.messageLabels.processing}</span>
                     <h3>{activeStep || t.messageLabels.processingTitle}</h3>
-                    <p>{t.messageLabels.processingText}</p>
+                    {t.messageLabels.processingText ? <p>{t.messageLabels.processingText}</p> : null}
                 </div>
             </div>
 
