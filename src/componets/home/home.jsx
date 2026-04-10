@@ -23,15 +23,33 @@ const SAMPLE_MCP_CONFIG = {
   },
 };
 
+const DEFAULT_SERVERS = {
+  sqlite_server: {
+    protocol: 'httpstream',
+    'httpstream-url': 'http://127.0.0.1:8080/sqlite_mcp_server/mcp',
+    name: 'sqlite_server',
+    description: 'This server specializes in sqlite operations.',
+    headers: {
+      'MASTER-TOKEN': 'master_token_test_123456789abcdef',
+    },
+  },
+  messages_simulation: {
+    protocol: 'httpstream',
+    'httpstream-url': 'http://127.0.0.1:8765/send_message_service/mcp',
+    name: 'send_message_service',
+    description: 'This server specializes in send messages as simulation.',
+  },
+};
+
 const loadStoredServers = () => {
   try {
     const raw = localStorage.getItem(ADDITIONAL_SERVERS_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) return DEFAULT_SERVERS;
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return DEFAULT_SERVERS;
     return parsed;
   } catch (error) {
-    return null;
+    return DEFAULT_SERVERS;
   }
 };
 

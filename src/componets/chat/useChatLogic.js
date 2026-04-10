@@ -3,15 +3,33 @@ import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 const ADDITIONAL_SERVERS_STORAGE_KEY = 'fastchat-additional-servers';
 
+const DEFAULT_ADDITIONAL_SERVERS = {
+  sqlite_server: {
+    protocol: 'httpstream',
+    'httpstream-url': 'http://127.0.0.1:8080/sqlite_mcp_server/mcp',
+    name: 'sqlite_server',
+    description: 'This server specializes in sqlite operations.',
+    headers: {
+      'MASTER-TOKEN': 'master_token_test_123456789abcdef',
+    },
+  },
+  messages_simulation: {
+    protocol: 'httpstream',
+    'httpstream-url': 'http://127.0.0.1:8765/send_message_service/mcp',
+    name: 'send_message_service',
+    description: 'This server specializes in send messages as simulation.',
+  },
+};
+
 const readAdditionalServersFromStorage = () => {
   try {
     const raw = localStorage.getItem(ADDITIONAL_SERVERS_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) return DEFAULT_ADDITIONAL_SERVERS;
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return DEFAULT_ADDITIONAL_SERVERS;
     return parsed;
   } catch (error) {
-    return null;
+    return DEFAULT_ADDITIONAL_SERVERS;
   }
 };
 
@@ -295,6 +313,18 @@ export default function useChatLogic() {
 
     ws.onopen = () => {
       console.log("✅ Conectado al servidor WebSocket");
+
+      const additionalServers = readAdditionalServersFromStorage();
+      if (!additionalServersSentRef.current && additionalServers && Object.keys(additionalServers).length > 0) {
+        ws.send(
+          JSON.stringify({
+            type: 'additional_servers',
+            data: additionalServers,
+          }),
+        );
+        additionalServersSentRef.current = true;
+      }
+
       setConnectionStatus('connected');
     };
 
@@ -334,19 +364,6 @@ export default function useChatLogic() {
   const sendMessage = () => {
     if (input.trim() && wsRef.current?.readyState === WebSocket.OPEN) {
       const submittedInput = input.trim();
-      const additionalServers = readAdditionalServersFromStorage();
-
-      if (!additionalServersSentRef.current) {
-        if (additionalServers && Object.keys(additionalServers).length > 0) {
-          wsRef.current.send(
-            JSON.stringify({
-              type: 'additional_servers',
-              data: additionalServers,
-            }),
-          );
-        }
-        additionalServersSentRef.current = true;
-      }
 
       wsRef.current.send(input);
       setMessages((prev) => [
